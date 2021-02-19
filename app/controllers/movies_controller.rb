@@ -6,8 +6,33 @@ class MoviesController < ApplicationController
     # will render app/views/movies/show.<extension> by default
   end
 
+  # ver3
   def index
-    @movies = Movie.all
+
+    @all_ratings = Movie.all_ratings
+    @ratings_to_show = Array.new
+    # Here: when sorting or NON-sorting, the rating info are both referenced by "ratings",
+    # !!! params[:home] is set in veiws, to make sure when we unclick all rating checkbox, don't use the session info.
+    if params[:home] and params[:ratings]
+      # If rating checkbox has been checked, convert the keys of the hash to an array
+      @ratings_to_show = params[:ratings].keys
+    # When go back to HOME page from other links, use sesseion.
+    elsif !params[:home] and session[:ratings]
+      @ratings_to_show = session[:ratings].keys
+    end
+    @movies = Movie.with_ratings(@ratings_to_show)
+
+    @sort = params[:sort]
+    # Click Fresh in the HOME page, the sorting will dispear.
+    if !params[:home] and session[:sort]
+      @sort = session[:sort]
+    end
+    @movies = @movies.order(@sort)
+
+    # If there are new actions about rating or sorting, update them to sessoin; (@ratings_to_show... obtained from params)
+    # If no action, just go back from other links, (@ratings_to_show... obtained from sessions), thus same
+    session[:ratings] = Hash[@ratings_to_show.collect {|r| [r, 1]}]
+    session[:sort] = @sort
   end
 
   def new
